@@ -11,6 +11,7 @@ use App\Http\Controllers\SharedCalendarController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\AccessControlController;
 use App\Http\Controllers\AssetController;
+use App\Http\Controllers\HRAdminController;
 
 use Illuminate\Support\Facades\Session;
 
@@ -62,6 +63,29 @@ Route::prefix('api')->group(function () {
     Route::post('/assets/deallocate', [AssetController::class, 'deallocate']);
     Route::post('/assets/reallocate', [AssetController::class, 'reallocate']);
     Route::post('/assets/decommission', [AssetController::class, 'decommission']);
+
+    // HR Management routes
+    Route::prefix('hr')->group(function () {
+        // Core HR operations
+        Route::post('/jobs', [HRAdminController::class, 'createJob']);
+        Route::post('/candidates', [HRAdminController::class, 'addCandidate']);
+        Route::post('/assign-to-job', [HRAdminController::class, 'assignToJob']);
+        Route::post('/approve-candidate', [HRAdminController::class, 'approveCandidate']);
+        Route::post('/schedule-interview', [HRAdminController::class, 'scheduleInterview']);
+        Route::post('/send-offer', [HRAdminController::class, 'sendOffer']);
+        Route::post('/start-onboarding', [HRAdminController::class, 'startOnboarding']);
+        Route::post('/mark-resignation', [HRAdminController::class, 'markResignation']);
+
+        // Data retrieval endpoints
+        Route::get('/jobs', [HRAdminController::class, 'getJobs']);
+        Route::get('/candidates', [HRAdminController::class, 'getCandidates']);
+        Route::get('/candidate-sources', [HRAdminController::class, 'getCandidateSources']);
+        Route::get('/candidate-skills', [HRAdminController::class, 'getCandidateSkills']);
+        Route::get('/available-candidates', [HRAdminController::class, 'getAvailableCandidates']);
+        Route::get('/candidates-for-approval', [HRAdminController::class, 'getCandidatesForApproval']);
+        Route::get('/verified-candidates', [HRAdminController::class, 'getVerifiedCandidates']);
+        Route::get('/active-employees', [HRAdminController::class, 'getActiveEmployees']);
+    });
 
     // Debug routes for testing and development
     Route::get('/debug/auth', function() {
