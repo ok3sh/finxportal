@@ -27,7 +27,7 @@ export default function AgendaCalendar() {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    fetch('/auth/status', { credentials: 'include' })
+    fetch('/api/auth/status', { credentials: 'include' })
       .then(res => res.json())
       .then(data => {
         const calendarData = data.user && data.user.calendar;

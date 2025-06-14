@@ -27,7 +27,7 @@ class AuthController extends Controller
         $authUrl = $provider->getAuthorizationUrl([
             'scope' => [
                 'openid', 'profile', 'email',
-                'User.Read', 'Calendars.Read', 'Group.Read.All'
+                'User.Read', 'User.Read.All', 'Calendars.Read', 'Calendars.Read.Shared', 'Group.Read.All', 'GroupMember.Read.All', 'Mail.Send'
             ]
         ]);
         Session::put('oauth2state', $provider->getState());

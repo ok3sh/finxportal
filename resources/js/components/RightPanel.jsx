@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 function SupportIcon() {
   return (
@@ -10,14 +11,36 @@ function SupportIcon() {
 
 export default function RightPanel({ onShowDocs }) {
   const [user, setUser] = useState(null);
+  const [rightPanelLink, setRightPanelLink] = useState({
+    name: 'Outlook',
+    url: 'https://outlook.office.com',
+    is_personalized: false
+  });
+  const navigate = useNavigate();
 
   useEffect(() => {
-    fetch('/auth/status', { credentials: 'include' })
+    // Fetch user status
+    fetch('/api/auth/status', { credentials: 'include' })
       .then(res => res.json())
       .then(data => {
         if (data.isAuthenticated && data.user && data.user.profile) {
           setUser(data.user.profile);
         }
+      });
+      
+    // Fetch personalized RightPanel link
+    fetch('/api/links/rightpanel', { credentials: 'include' })
+      .then(res => res.json())
+      .then(data => {
+        setRightPanelLink({
+          name: data.name || 'Outlook',
+          url: data.url || 'https://outlook.office.com',
+          is_personalized: data.is_personalized || false
+        });
+      })
+      .catch(error => {
+        console.error('Failed to fetch rightpanel link:', error);
+        // Keep default Outlook link on error
       });
   }, []);
 
@@ -26,6 +49,16 @@ export default function RightPanel({ onShowDocs }) {
   const profilePic = user && user.userPrincipalName
     ? `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || user.userPrincipalName)}&background=115948&color=fff&size=128`
     : null;
+
+  const handleRightPanelLinkClick = (e) => {
+    e.preventDefault();
+    // Open link in new tab to preserve main portal session
+    window.open(rightPanelLink.url, '_blank');
+  };
+
+  const handleSupportClick = () => {
+    navigate('/memo-approval');
+  };
 
   return (
     <div className="bg-[#115948] w-72 h-full rounded-l-3xl flex flex-col justify-between items-center py-8 px-4">
@@ -44,11 +77,23 @@ export default function RightPanel({ onShowDocs }) {
             Document directory
           </a>
           <hr className="border-green-200 w-full my-2" />
-          <a href="#" className="text-white text-lg transition duration-200 hover:scale-105 hover:text-green-200 active:scale-95">Outlook</a>
+          <a 
+            href="#" 
+            onClick={handleRightPanelLinkClick}
+            className={`text-white text-lg transition duration-200 hover:scale-105 hover:text-green-200 active:scale-95 ${
+              rightPanelLink.is_personalized ? 'font-semibold' : ''
+            }`}
+            title={rightPanelLink.is_personalized ? `Personalized link: ${rightPanelLink.url}` : 'Default Outlook link'}
+          >
+            {rightPanelLink.name}
+          </a>
         </div>
       </div>
       <div className="w-full flex justify-center mb-2">
-        <button className="bg-[#177761] rounded-xl flex items-center gap-8 pl-3 pr-16 py-3 text-white font-semibold text-lg shadow hover:bg-[#115948] transition duration-200 hover:scale-105 hover:shadow-lg active:scale-95">
+        <button 
+          onClick={handleSupportClick}
+          className="bg-[#177761] rounded-xl flex items-center gap-8 pl-3 pr-16 py-3 text-white font-semibold text-lg shadow hover:bg-[#115948] transition duration-200 hover:scale-105 hover:shadow-lg active:scale-95"
+        >
           <SupportIcon /> support
         </button>
       </div>

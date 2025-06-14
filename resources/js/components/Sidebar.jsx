@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import finLogo from '../assets/fin-logo.png';
 
 function CalendarIcon() {
@@ -9,10 +9,16 @@ function CalendarIcon() {
   );
 }
 
-function BellIcon() {
+function PeopleIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width={30} height={30}>
-      <path d="M15.0002 19C15.0002 20.6569 13.6571 22 12.0002 22C10.3434 22 9.00025 20.6569 9.00025 19M13.7968 6.23856C14.2322 5.78864 14.5002 5.17562 14.5002 4.5C14.5002 3.11929 13.381 2 12.0002 2C10.6195 2 9.50025 3.11929 9.50025 4.5C9.50025 5.17562 9.76825 5.78864 10.2037 6.23856M2.54707 8.32296C2.53272 6.87161 3.3152 5.51631 4.57928 4.80306M21.4534 8.32296C21.4678 6.87161 20.6853 5.51631 19.4212 4.80306M18.0002 11.2C18.0002 9.82087 17.3681 8.49823 16.2429 7.52304C15.1177 6.54786 13.5915 6 12.0002 6C10.4089 6 8.88283 6.54786 7.75761 7.52304C6.63239 8.49823 6.00025 9.82087 6.00025 11.2C6.00025 13.4818 5.43438 15.1506 4.72831 16.3447C3.92359 17.7056 3.52122 18.3861 3.53711 18.5486C3.55529 18.7346 3.58876 18.7933 3.73959 18.9036C3.87142 19 4.53376 19 5.85844 19H18.1421C19.4667 19 20.1291 19 20.2609 18.9036C20.4117 18.7933 20.4452 18.7346 20.4634 18.5486C20.4793 18.3861 20.0769 17.7056 19.2722 16.3447C18.5661 15.1506 18.0002 13.4818 18.0002 11.2Z" stroke="#ffffff" strokeWidth="1.296" strokeLinecap="round" strokeLinejoin="round"/>
+    <svg width={30} height={30} viewBox="0 0 28.00 28.00" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="#ffffff">
+      <g id="SVGRepo_iconCarrier">
+        <g id="🔍-Product-Icons" stroke="none" fill="none" fillRule="evenodd">
+          <g id="ic_fluent_people_community_28_regular" fill="#ffffff" fillRule="nonzero">
+            <path d="M17.25,18 C18.4926407,18 19.5,19.0073593 19.5,20.25 L19.5,21.7519766 L19.4921156,21.8604403 C19.1813607,23.9866441 17.2715225,25.0090369 14.0667905,25.0090369 C10.8736123,25.0090369 8.93330141,23.9983408 8.51446278,21.8965776 L8.5,21.75 L8.5,20.25 C8.5,19.0073593 9.50735931,18 10.75,18 L17.25,18 Z M17.25,19.5 L10.75,19.5 C10.3357864,19.5 10,19.8357864 10,20.25 L10,21.670373 C10.2797902,22.870787 11.550626,23.5090369 14.0667905,23.5090369 C16.582858,23.5090369 17.7966388,22.8777026 18,21.6931543 L18,20.25 C18,19.8357864 17.6642136,19.5 17.25,19.5 Z M18.2435553,11.9989081 L23.75,12 C24.9926407,12 26,13.0073593 26,14.25 L26,15.7519766 L25.9921156,15.8604403 C25.6813607,17.9866441 23.7715225,19.0090369 20.5667905,19.0090369 L20.2519278,19.0056708 L20.2519278,19.0056708 C19.9568992,18.2920884 19.4151086,17.7078172 18.7333573,17.3574924 C19.2481703,17.4584023 19.8580822,17.5090369 20.5667905,17.5090369 C23.082858,17.5090369 24.2966388,16.8777026 24.5,15.6931543 L24.5,14.25 C24.5,13.8357864 24.1642136,13.5 23.75,13.5 L18.5,13.5 C18.5,12.9736388 18.4096286,12.468385 18.2435553,11.9989081 Z M4.25,12 L9.75644465,11.9989081 C9.61805027,12.3901389 9.53222663,12.8062147 9.50746303,13.2386463 L9.5,13.5 L4.25,13.5 C3.83578644,13.5 3.5,13.8357864 3.5,14.25 L3.5,15.670373 C3.77979024,16.870787 5.05062598,17.5090369 7.5667905,17.5090369 C8.18886171,17.5090369 8.73132757,17.4704451 9.1985991,17.3944422 C8.5478391,17.7478373 8.03195873,18.3174175 7.74634871,19.0065739 L7.5667905,19.0090369 C4.37361228,19.0090369 2.43330141,17.9983408 2.01446278,15.8965776 L2,15.75 L2,14.25 C2,13.0073593 3.00735931,12 4.25,12 Z M14,10 C15.9329966,10 17.5,11.5670034 17.5,13.5 C17.5,15.4329966 15.9329966,17 14,17 C12.0670034,17 10.5,15.4329966 10.5,13.5 C10.5,11.5670034 12.0670034,10 14,10 Z M14,11.5 C12.8954305,11.5 12,12.3954305 12,13.5 C12,14.6045695 12.8954305,15.5 14,15.5 C15.1045695,15.5 16,14.6045695 16,13.5 C16,12.3954305 15.1045695,11.5 14,11.5 Z M20.5,4 C22.4329966,4 24,5.56700338 24,7.5 C24,9.43299662 22.4329966,11 20.5,11 C18.5670034,11 17,9.43299662 17,7.5 C17,5.56700338 18.5670034,4 20.5,4 Z M7.5,4 C9.43299662,4 11,5.56700338 11,7.5 C11,9.43299662 9.43299662,11 7.5,11 C5.56700338,11 4,9.43299662 4,7.5 C4,5.56700338 5.56700338,4 7.5,4 Z M20.5,5.5 C19.3954305,5.5 18.5,6.3954305 18.5,7.5 C18.5,8.6045695 19.3954305,9.5 20.5,9.5 C21.6045695,9.5 22.5,8.6045695 22.5,7.5 C22.5,6.3954305 21.6045695,5.5 20.5,5.5 Z M7.5,5.5 C6.3954305,5.5 5.5,6.3954305 5.5,7.5 C5.5,8.6045695 6.3954305,9.5 7.5,9.5 C8.6045695,9.5 9.5,8.6045695 9.5,7.5 C9.5,6.3954305 8.6045695,5.5 7.5,5.5 Z" id="🎨-Color"/>
+          </g>
+        </g>
+      </g>
     </svg>
   );
 }
@@ -33,8 +39,32 @@ function LogoutIcon() {
   );
 }
 
-export default function Sidebar({ onCalendarClick }) {
+export default function Sidebar({ onCalendarClick, onEmployeeDirectoryClick }) {
+  const [showAssetRequestModal, setShowAssetRequestModal] = useState(false);
+
+  const handleAssetRequest = async (requestText) => {
+    try {
+      const response = await fetch('/api/asset-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ request_text: requestText })
+      });
+      
+      if (response.ok) {
+        alert('Asset request submitted successfully! IT admin has been notified.');
+      } else {
+        throw new Error('Failed to submit request');
+      }
+    } catch (error) {
+      console.error('Failed to submit asset request:', error);
+      alert('Failed to submit request. Please try again.');
+      throw error;
+    }
+  };
+
   return (
+    <>
     <div className="bg-[#115948] text-white w-24 h-full flex flex-col items-center py-6 space-y-28 rounded-r-3xl">
       <div className="w-14 h-14 flex items-center justify-center font-bold text-3xl mb-8">
         <img src={finLogo} alt="Fin Logo" className="h-12 w-12 object-contain" />
@@ -45,15 +75,20 @@ export default function Sidebar({ onCalendarClick }) {
         >
           <CalendarIcon />
         </button>
-        <button className="w-16 h-16 bg-[#115948] rounded-full flex items-center justify-center hover:bg-[#177761] transition duration-200 hover:scale-105 hover:shadow-lg active:scale-95">
-          <BellIcon />
+        <button className="w-16 h-16 bg-[#115948] rounded-full flex items-center justify-center hover:bg-[#177761] transition duration-200 hover:scale-105 hover:shadow-lg active:scale-95"
+          onClick={onEmployeeDirectoryClick}
+        >
+          <PeopleIcon />
         </button>
-        <button className="w-16 h-16 bg-[#115948] rounded-full flex items-center justify-center hover:bg-[#177761] transition duration-200 hover:scale-105 hover:shadow-lg active:scale-95">
+          <button 
+            className="w-16 h-16 bg-[#115948] rounded-full flex items-center justify-center hover:bg-[#177761] transition duration-200 hover:scale-105 hover:shadow-lg active:scale-95"
+            onClick={() => setShowAssetRequestModal(true)}
+          >
           <SettingsIcon />
         </button>
         <button className="w-16 h-16 bg-[#177761] rounded-full flex items-center justify-center hover:bg-[#115948] mt-auto transition duration-200 hover:scale-105 hover:shadow-lg active:scale-95"
           onClick={async () => {
-            await fetch('/auth/logout', {
+            await fetch('/api/auth/logout', {
               method: 'GET',
               credentials: 'include',
             });
@@ -64,5 +99,51 @@ export default function Sidebar({ onCalendarClick }) {
         </button>
       </div>
     </div>
+
+      {/* Asset Request Modal */}
+      {showAssetRequestModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md">
+            <h3 className="text-xl font-bold text-gray-800 mb-4">Request Asset / IT Support</h3>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const formData = new FormData(e.target);
+              const requestText = formData.get('request_text');
+              if (!requestText.trim()) return;
+              
+              try {
+                await handleAssetRequest(requestText);
+                setShowAssetRequestModal(false);
+                e.target.reset();
+              } catch (error) {
+                // Error handled in handleAssetRequest
+              }
+            }}>
+              <textarea
+                name="request_text"
+                placeholder="Describe your asset request or IT issue..."
+                className="w-full h-32 p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-[#115948] focus:border-transparent"
+                required
+              />
+              <div className="flex gap-3 mt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowAssetRequestModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-[#115948] text-white rounded-lg hover:bg-[#0e4a3c]"
+                >
+                  Submit Request
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </>
   );
 } 
