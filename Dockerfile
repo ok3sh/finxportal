@@ -1,3 +1,4 @@
+# Use PHP 8.2 FPM as base image
 FROM php:8.2-fpm
 
 # Set working directory
@@ -15,40 +16,61 @@ RUN apt-get update && apt-get install -y \
     unzip \
     nginx \
     supervisor \
-    && rm -rf /var/lib/apt/lists/*
+    postgresql-client \
+    libpq-dev \
+    && docker-php-ext-configure pgsql -with-pgsql=/usr/local/pgsql \
+    && docker-php-ext-install \
+        pdo \
+        pdo_pgsql \
+        pgsql \
+        mbstring \
+        exif \
+        pcntl \
+        bcmath \
+        gd \
+        zip
 
-# Install PHP extensions
-RUN docker-php-ext-install \
-    pdo_mysql \
-    mbstring \
-    exif \
-    pcntl \
-    bcmath \
-    gd \
-    zip
+# Install Redis extension
+RUN pecl install redis && docker-php-ext-enable redis
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Copy project files
-COPY . /var/www/html/
-
-# Install dependencies
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+# Copy application files
+COPY . /var/www/html
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html/storage \
     && chmod -R 755 /var/www/html/bootstrap/cache
 
-# Copy nginx configuration
-COPY docker/nginx/nginx.conf /etc/nginx/sites-available/default
+# Install PHP dependencies
+RUN composer install --optimize-autoloader
 
-# Copy supervisor configuration
+# Install Node.js and npm
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y nodejs
+
+# Install npm dependencies
+RUN npm install
+
+# Configure Nginx
+COPY docker/nginx/nginx.conf /etc/nginx/sites-available/default
+RUN rm /etc/nginx/sites-enabled/default \
+    && ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled/
+
+# Configure Supervisor
 COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# Expose port 80
-EXPOSE 80
+# Configure PHP-FPM
+RUN sed -i 's/listen = 127.0.0.1:9000/listen = 0.0.0.0:9000/' /usr/local/etc/php-fpm.d/www.conf
+
+# Create entrypoint script
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# Expose ports
+EXPOSE 3000 8000
 
 # Start supervisor
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"] 
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"] 
