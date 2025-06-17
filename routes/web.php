@@ -208,35 +208,199 @@ Route::prefix('api')->group(function () {
                 return response()->json(['error' => 'Not authenticated'], 401);
             }
 
-            $tokenData = Session::get('token');
-            if (!$tokenData || !isset($tokenData['access_token'])) {
-                return response()->json(['error' => 'No access token'], 401);
-            }
+            $userEmail = $user['profile']['userPrincipalName'] ?? $user['profile']['mail'];
+            $userName = $user['profile']['displayName'] ?? 'Test User';
 
-            // Create a test memo object
-            $testMemo = (object) [
-                'id' => 999,
-                'description' => 'Test Email Functionality',
-                'raised_by_name' => 'Test User',
-                'raised_by_email' => $user['profile']['userPrincipalName'] ?? $user['profile']['mail'],
-                'document_path' => null,
-                'created_at' => now()
-            ];
+            Log::info('Debug noreply email test started', [
+                'recipient_email' => $userEmail,
+                'recipient_name' => $userName
+            ]);
 
+            // Test noreply email send using application permissions
             $emailService = new \App\Services\EmailService();
-            $result = $emailService->sendDeclineNotification(
-                $testMemo,
-                'This is a test decline reason to verify email functionality is working correctly.',
-                $user['profile']['displayName'] ?? 'Test Decliner',
-                $user['profile']['userPrincipalName'] ?? $user['profile']['mail'],
-                'Test Group'
+            $result = $emailService->sendEmailFromNoreply(
+                $userEmail, // Send to self for testing
+                $userName,
+                'Test Email from FinFinity Portal - Noreply',
+                '<h2>🚀 Noreply Email Test</h2>
+                <p>This is a test email sent from <strong>noreply@finfinity.co.in</strong> using Application permissions.</p>
+                <p>If you receive this email, the noreply email integration is working correctly!</p>
+                <ul>
+                    <li><strong>Sender:</strong> noreply@finfinity.co.in</li>
+                    <li><strong>Method:</strong> Application Permissions (Client Credentials)</li>
+                    <li><strong>Timestamp:</strong> ' . now()->toDateTimeString() . '</li>
+                </ul>
+                <p style="color: #28a745;">✅ Noreply email system is functional!</p>'
             );
 
             return response()->json([
                 'email_sent' => $result,
-                'test_memo' => $testMemo,
-                'user_email' => $user['profile']['userPrincipalName'] ?? $user['profile']['mail'],
-                'has_token' => !empty($tokenData['access_token'])
+                'sender' => 'noreply@finfinity.co.in',
+                'recipient' => $userEmail,
+                'method' => 'Application Permissions (Client Credentials)',
+                'message' => $result ? 'Noreply email sent successfully' : 'Noreply email failed to send - check logs for details'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Debug noreply email test failed', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+
+            return response()->json([
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ], 500);
+        }
+    });
+
+    Route::get('/api/debug/token-info', function () {
+        try {
+            $user = Session::get('user');
+            $tokenData = Session::get('token');
+            
+            if (!$user || !isset($user['authenticated']) || !$user['authenticated']) {
+                return response()->json(['error' => 'Not authenticated'], 401);
+            }
+
+            if (!$tokenData || !isset($tokenData['access_token'])) {
+                return response()->json(['error' => 'No access token'], 401);
+            }
+
+            // Try to get token info from Microsoft Graph
+            $client = new \GuzzleHttp\Client(['timeout' => 30.0]);
+            
+            try {
+                // Get current user info to test token
+                $response = $client->get('https://graph.microsoft.com/v1.0/me', [
+                    'headers' => [
+                        'Authorization' => 'Bearer ' . $tokenData['access_token'],
+                        'Content-Type' => 'application/json'
+                    ]
+                ]);
+                
+                $userInfo = json_decode($response->getBody(), true);
+                $tokenValid = true;
+                
+            } catch (\Exception $e) {
+                $userInfo = ['error' => $e->getMessage()];
+                $tokenValid = false;
+            }
+
+            return response()->json([
+                'token_valid' => $tokenValid,
+                'user_info' => $userInfo,
+                'token_data' => [
+                    'has_access_token' => isset($tokenData['access_token']),
+                    'has_refresh_token' => isset($tokenData['refresh_token']),
+                    'token_length' => strlen($tokenData['access_token'] ?? ''),
+                    'expires_in' => $tokenData['expires_in'] ?? 'unknown',
+                    'scope' => $tokenData['scope'] ?? 'unknown',
+                    'token_type' => $tokenData['token_type'] ?? 'unknown'
+                ],
+                'session_user' => [
+                    'email' => $user['profile']['userPrincipalName'] ?? $user['profile']['mail'] ?? 'unknown',
+                    'name' => $user['profile']['displayName'] ?? 'unknown',
+                    'groups_count' => count($user['groups']['value'] ?? [])
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ], 500);
+        }
+    });
+
+    Route::get('/api/debug/check-permissions', function () {
+        try {
+            $user = Session::get('user');
+            $tokenData = Session::get('token');
+            
+            if (!$user || !isset($user['authenticated']) || !$user['authenticated']) {
+                return response()->json(['error' => 'Not authenticated'], 401);
+            }
+
+            if (!$tokenData || !isset($tokenData['access_token'])) {
+                return response()->json(['error' => 'No access token'], 401);
+            }
+
+            $client = new \GuzzleHttp\Client(['timeout' => 30.0]);
+            $results = [];
+
+            // Test 1: Basic user info (should work)
+            try {
+                $response = $client->get('https://graph.microsoft.com/v1.0/me', [
+                    'headers' => [
+                        'Authorization' => 'Bearer ' . $tokenData['access_token'],
+                        'Content-Type' => 'application/json'
+                    ]
+                ]);
+                $results['user_read'] = [
+                    'status' => 'SUCCESS',
+                    'status_code' => $response->getStatusCode(),
+                    'user_email' => json_decode($response->getBody(), true)['userPrincipalName'] ?? 'unknown'
+                ];
+            } catch (\Exception $e) {
+                $results['user_read'] = [
+                    'status' => 'FAILED', 
+                    'error' => $e->getMessage()
+                ];
+            }
+
+            // Test 2: Check if user has a mailbox
+            try {
+                $response = $client->get('https://graph.microsoft.com/v1.0/me/mailboxSettings', [
+                    'headers' => [
+                        'Authorization' => 'Bearer ' . $tokenData['access_token'],
+                        'Content-Type' => 'application/json'
+                    ]
+                ]);
+                $results['mailbox_access'] = [
+                    'status' => 'SUCCESS',
+                    'status_code' => $response->getStatusCode(),
+                    'has_mailbox' => true
+                ];
+            } catch (\Exception $e) {
+                $results['mailbox_access'] = [
+                    'status' => 'FAILED',
+                    'error' => $e->getMessage()
+                ];
+            }
+
+            // Test 3: Try to get mail folders (tests Mail permissions)
+            try {
+                $response = $client->get('https://graph.microsoft.com/v1.0/me/mailFolders', [
+                    'headers' => [
+                        'Authorization' => 'Bearer ' . $tokenData['access_token'],
+                        'Content-Type' => 'application/json'
+                    ]
+                ]);
+                $results['mail_folders'] = [
+                    'status' => 'SUCCESS',
+                    'status_code' => $response->getStatusCode()
+                ];
+            } catch (\Exception $e) {
+                $results['mail_folders'] = [
+                    'status' => 'FAILED',
+                    'error' => $e->getMessage()
+                ];
+            }
+
+            return response()->json([
+                'token_info' => [
+                    'has_access_token' => !empty($tokenData['access_token']),
+                    'token_length' => strlen($tokenData['access_token'] ?? ''),
+                    'scope' => $tokenData['scope'] ?? 'not available',
+                    'token_type' => $tokenData['token_type'] ?? 'unknown'
+                ],
+                'permission_tests' => $results,
+                'user_email' => $user['profile']['userPrincipalName'] ?? $user['profile']['mail'] ?? 'unknown',
+                'message' => 'Check which permissions are working'
             ]);
 
         } catch (\Exception $e) {

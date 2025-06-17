@@ -79,7 +79,7 @@ export default function SharedCalendar() {
   return (
     <div className="w-full h-full bg-white rounded-2xl shadow-lg p-4 overflow-auto">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-800">Shared Calendar</h3>
+        <h3 className="text-lg font-semibold text-gray-800">Company Announcements</h3>
         <button
           onClick={fetchSharedEvents}
           className="text-gray-500 hover:text-gray-700 transition-colors"
