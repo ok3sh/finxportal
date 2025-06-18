@@ -1,0 +1,116 @@
+# Multi-stage production Dockerfile
+# Stage 1: Build frontend assets
+FROM node:18-alpine AS frontend-builder
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy frontend source
+COPY resources/ ./resources/
+COPY vite.config.js ./
+COPY tailwind.config.js ./
+COPY postcss.config.js ./
+
+# Build frontend assets
+RUN npm run build
+
+# Stage 2: Build PHP application
+FROM php:8.2-fpm-alpine AS production
+
+# Install system dependencies
+RUN apk add --no-cache \
+    git \
+    curl \
+    libpng-dev \
+    oniguruma-dev \
+    libxml2-dev \
+    libzip-dev \
+    zip \
+    unzip \
+    nginx \
+    supervisor \
+    postgresql-client \
+    postgresql-dev \
+    bash \
+    dcron \
+    && docker-php-ext-configure pgsql -with-pgsql=/usr/local/pgsql \
+    && docker-php-ext-install \
+        pdo \
+        pdo_pgsql \
+        pgsql \
+        mbstring \
+        exif \
+        pcntl \
+        bcmath \
+        gd \
+        zip \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
+    && rm -rf /var/cache/apk/*
+
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Create application directory
+WORKDIR /var/www/html
+
+# Copy composer files
+COPY composer.json composer.lock ./
+
+# Install PHP dependencies for production
+RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interaction
+
+# Copy application code
+COPY . .
+
+# Copy built frontend assets from first stage
+COPY --from=frontend-builder /app/public/build ./public/build
+
+# Set proper permissions
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html/storage \
+    && chmod -R 755 /var/www/html/bootstrap/cache
+
+# Create required directories
+RUN mkdir -p /var/log/supervisor \
+    && mkdir -p /var/log/nginx \
+    && mkdir -p /run/nginx
+
+# Configure Nginx for production
+COPY docker/nginx/nginx.prod.conf /etc/nginx/http.d/default.conf
+RUN rm -f /etc/nginx/http.d/default.conf.orig
+
+# Configure Supervisor
+COPY docker/supervisor/supervisord.prod.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Configure PHP-FPM for production
+RUN echo "memory_limit = 256M" >> /usr/local/etc/php/conf.d/docker-php-ram-limit.ini \
+    && echo "upload_max_filesize = 50M" >> /usr/local/etc/php/conf.d/docker-php-uploads.ini \
+    && echo "post_max_size = 50M" >> /usr/local/etc/php/conf.d/docker-php-uploads.ini \
+    && echo "max_execution_time = 300" >> /usr/local/etc/php/conf.d/docker-php-timeouts.ini
+
+# Configure PHP-FPM pool
+RUN sed -i 's/listen = 127.0.0.1:9000/listen = 9000/' /usr/local/etc/php-fpm.d/www.conf \
+    && sed -i 's/;access.log/access.log/' /usr/local/etc/php-fpm.d/www.conf
+
+# Create production entrypoint
+COPY docker/entrypoint.prod.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# Add healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8000/api/health || exit 1
+
+# Expose ports
+EXPOSE 80 443 8000
+
+# Set user
+USER www-data
+
+# Start supervisor
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"] 

@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - NODE_ENV=production
+        - APP_ENV=production
+    container_name: finfinity_portal_app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      # Persistent storage volumes
+      - ./storage/app:/var/www/html/storage/app
+      - ./storage/logs:/var/www/html/storage/logs
+      - ./certs:/etc/nginx/ssl:ro
+      # Bind mount .env for easy config updates
+      - ./.env:/var/www/html/.env:ro
+    ports:
+      - "3000:3000"  # Vite production build server
+      - "8000:8000"  # Laravel API
+      - "443:443"    # HTTPS via Nginx
+      - "80:80"      # HTTP redirect to HTTPS
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_URL=https://localhost
+      - DB_HOST=91.108.110.65
+      - DB_PORT=5432
+      - REDIS_HOST=127.0.0.1
+      - REDIS_PORT=6379
+    networks:
+      - finfinity_network
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    
+  # Local Redis for session/cache if needed
+  redis:
+    image: redis:7-alpine
+    container_name: finfinity_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - finfinity_network
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_secret_123}
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  finfinity_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  redis_data:
+    driver: local 
