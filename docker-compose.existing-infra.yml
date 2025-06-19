@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+  # Laravel Backend Service
+  portal-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+      args:
+        - APP_ENV=production
+    container_name: finfinity_portal_backend
+    restart: unless-stopped
+    working_dir: /var/www/html
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_URL=https://portal.finfinity.co.in:8443
+      
+      # Database - Connect to existing PostgreSQL
+      - DB_CONNECTION=pgsql
+      - DB_HOST=finx-postgres
+      - DB_PORT=5432
+      - DB_DATABASE=laraveldb
+      - DB_USERNAME=laraveldb
+      - DB_PASSWORD=L2r2v3l
+      
+      # Redis - Connect to existing Redis
+      - REDIS_HOST=redis_dms
+      - REDIS_PASSWORD=null
+      - REDIS_PORT=6379
+      
+      # Microsoft Graph Configuration
+      - MICROSOFT_CLIENT_ID=${MICROSOFT_CLIENT_ID}
+      - MICROSOFT_CLIENT_SECRET=${MICROSOFT_CLIENT_SECRET}
+      - MICROSOFT_TENANT_ID=${MICROSOFT_TENANT_ID}
+      - REDIRECT_URI=https://portal.finfinity.co.in/auth/callback
+      
+      # Email Configuration
+      - MAIL_MAILER=smtp
+      - MAIL_HOST=smtp.office365.com
+      - MAIL_PORT=587
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - MAIL_ENCRYPTION=tls
+      
+      # Paperless Integration - Connect to existing Paperless
+      - PAPERLESS_TOKEN=${PAPERLESS_TOKEN}
+      - PAPERLESS_URL=http://paperless:8000
+    
+    ports:
+      - "8080:80"       # Backend API (matches existing Apache proxy)
+    
+    networks:
+      - finxPortal
+    
+    depends_on:
+      - portal_frontend
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # React Frontend Service  
+  portal_frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        - NODE_ENV=production
+    container_name: finfinity_portal_frontend
+    restart: unless-stopped
+    working_dir: /app
+    environment:
+      - NODE_ENV=production
+      - VITE_API_URL=https://portal.finfinity.co.in:8443
+      - VITE_APP_URL=https://portal.finfinity.co.in
+    
+    ports:
+      - "3000:3000"     # Frontend (matches existing Apache proxy)
+    
+    networks:
+      - finxPortal
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+# Use existing external network
+networks:
+  finxPortal:
+    external: true
+    name: finxPortal 

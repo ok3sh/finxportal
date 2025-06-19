@@ -1,0 +1,93 @@
+# Production Laravel Backend Dockerfile for FinFinity Portal
+FROM php:8.2-apache
+
+# Install system dependencies and PHP extensions
+RUN apt-get update && apt-get install -y \
+    libpq-dev \
+    libzip-dev \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    libcurl4-openssl-dev \
+    unzip \
+    git \
+    zip \
+    curl \
+    supervisor \
+    cron \
+    && docker-php-ext-configure pgsql -with-pgsql=/usr/local/pgsql \
+    && docker-php-ext-install \
+        pdo \
+        pdo_pgsql \
+        pgsql \
+        zip \
+        mbstring \
+        xml \
+        curl \
+        gd \
+        bcmath \
+        pcntl \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
+    && a2enmod rewrite headers ssl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Set working directory
+WORKDIR /var/www/html
+
+# Copy composer files first for better caching
+COPY composer.json composer.lock ./
+
+# Install PHP dependencies
+RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interaction
+
+# Copy application code
+COPY . .
+
+# Copy existing application instead of scaffolding
+# The actual FinFinity Portal code is already in the context
+
+# Set up Apache document root
+ENV APACHE_DOCUMENT_ROOT /var/www/html/public
+RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf \
+    && sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}/!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
+
+# Configure Apache for production
+RUN echo "ServerTokens Prod" >> /etc/apache2/apache2.conf \
+    && echo "ServerSignature Off" >> /etc/apache2/apache2.conf \
+    && echo "Header always set X-Content-Type-Options nosniff" >> /etc/apache2/apache2.conf \
+    && echo "Header always set X-Frame-Options SAMEORIGIN" >> /etc/apache2/apache2.conf
+
+# Create required directories
+RUN mkdir -p storage/app/public \
+    && mkdir -p storage/framework/cache \
+    && mkdir -p storage/framework/sessions \
+    && mkdir -p storage/framework/views \
+    && mkdir -p storage/logs \
+    && mkdir -p bootstrap/cache
+
+# Set proper permissions
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html \
+    && chmod -R 775 /var/www/html/storage \
+    && chmod -R 775 /var/www/html/bootstrap/cache
+
+# Create health check endpoint
+RUN mkdir -p /var/www/html/public/api \
+    && echo '<?php header("Content-Type: application/json"); $health = ["status" => "ok", "timestamp" => date("c"), "service" => "FinFinity Portal Backend"]; try { $pdo = new PDO("pgsql:host=" . ($_ENV["DB_HOST"] ?? "finx-postgres") . ";port=5432;dbname=" . ($_ENV["DB_DATABASE"] ?? "laraveldb"), $_ENV["DB_USERNAME"] ?? "laraveldb", $_ENV["DB_PASSWORD"] ?? ""); $health["database"] = "connected"; } catch (Exception $e) { $health["database"] = "disconnected"; $health["status"] = "degraded"; } try { $redis = new Redis(); $redis->connect($_ENV["REDIS_HOST"] ?? "redis_dms", $_ENV["REDIS_PORT"] ?? 6379); $health["redis"] = "connected"; $redis->close(); } catch (Exception $e) { $health["redis"] = "disconnected"; } http_response_code($health["status"] === "ok" ? 200 : 503); echo json_encode($health, JSON_PRETTY_PRINT);' > /var/www/html/public/api/health.php
+
+# Configure supervisor for Laravel queues
+COPY docker/supervisor/supervisord.backend.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Create entrypoint script
+COPY docker/entrypoint.backend.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# Expose port
+EXPOSE 80
+
+# Set entrypoint
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"] 

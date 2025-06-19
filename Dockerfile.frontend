@@ -1,0 +1,65 @@
+# Multi-stage Frontend Dockerfile for FinFinity Portal
+# Stage 1: Build the React application
+FROM node:18-alpine AS builder
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy source code
+COPY resources/ ./resources/
+COPY public/ ./public/
+COPY vite.config.js ./
+COPY tailwind.config.js ./
+COPY postcss.config.js ./
+COPY .env* ./
+
+# Build for production
+RUN npm run build
+
+# Stage 2: Production runtime
+FROM node:18-alpine AS production
+
+WORKDIR /app
+
+# Install only production dependencies
+COPY package*.json ./
+RUN npm ci --only=production && npm cache clean --force
+
+# Copy built assets from builder stage
+COPY --from=builder /app/public/build ./public/build
+COPY --from=builder /app/dist ./dist
+
+# Copy necessary files for serving
+COPY resources/ ./resources/
+COPY public/ ./public/
+COPY vite.config.js ./
+COPY .env* ./
+
+# Install serve package for production serving
+RUN npm install -g serve
+
+# Create a simple health check
+RUN echo '<!DOCTYPE html><html><head><title>Health Check</title></head><body><h1>FinFinity Portal Frontend - OK</h1><p>Status: Running</p><p>Timestamp: <script>document.write(new Date().toISOString())</script></p></body></html>' > /app/health.html
+
+# Create entrypoint script
+RUN echo '#!/bin/sh\nset -e\necho "🚀 Starting FinFinity Portal Frontend..."\necho "Environment: $NODE_ENV"\necho "API URL: $VITE_API_URL"\necho "App URL: $VITE_APP_URL"\necho "Port: 3000"\necho "Starting Vite development server for production..."\nexec npm run dev -- --host 0.0.0.0 --port 3000' > /usr/local/bin/entrypoint.sh \
+    && chmod +x /usr/local/bin/entrypoint.sh
+
+# Alternative production serving script
+RUN echo '#!/bin/sh\nset -e\necho "🚀 Starting FinFinity Portal Frontend (Production Mode)..."\necho "Environment: $NODE_ENV"\necho "API URL: $VITE_API_URL"\necho "Serving built assets on port 3000..."\nexec serve -s dist -l 3000' > /usr/local/bin/entrypoint-prod.sh \
+    && chmod +x /usr/local/bin/entrypoint-prod.sh
+
+# Expose port
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
+    CMD curl -f http://localhost:3000/ || exit 1
+
+# Use development server by default (matches your current setup)
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"] 
